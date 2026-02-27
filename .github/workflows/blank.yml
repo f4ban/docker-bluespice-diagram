@@ -11,7 +11,7 @@ jobs:
 
       - name: Update Tomcat version
         run: |
-          current=$(grep TOMCAT_VERSION Dockerfile | cut -d'=' -f2)
+          current=$(grep -oP '(?<=ARG TOMCAT_VERSION=)[^ ]+' Dockerfile)
           latest=$(curl -s https://downloads.apache.org/tomcat/tomcat-10/ | grep -oP 'v\K\d+\.\d+\.\d+(?=/")' | grep -v -E '(alpha|beta|rc)' | sort -V | tail -1)
           if [ "$latest" != "$current" ]; then
             sed -i "s/TOMCAT_VERSION=$current/TOMCAT_VERSION=$latest/" Dockerfile
@@ -37,7 +37,7 @@ jobs:
 
       - name: Update Draw.io version
         run: |
-          current=$(grep DRAWIO_VERSION Dockerfile | cut -d'=' -f2)
+          current=$(grep -oP '(?<=ARG DRAWIO_VERSION=)[^ ]+' Dockerfile)
           latest=$(curl -s https://api.github.com/repos/jgraph/drawio/releases/latest | grep '"tag_name":' | head -1 | grep -oP '\d+\.\d+\.\d+')
           if [ "$latest" != "$current" ]; then
             sed -i "s/DRAWIO_VERSION=$current/DRAWIO_VERSION=$latest/" Dockerfile
