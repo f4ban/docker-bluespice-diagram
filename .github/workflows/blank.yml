@@ -1,0 +1,56 @@
+name: Update Dockerfile Versions
+
+on:
+  workflow_dispatch:
+
+jobs:
+  update-tomcat:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v3
+
+      - name: Update Tomcat version
+        run: |
+          current=$(grep TOMCAT_VERSION Dockerfile | cut -d'=' -f2)
+          latest=$(curl -s https://downloads.apache.org/tomcat/tomcat-10/ | grep -oP 'v\K\d+\.\d+\.\d+(?=/")' | grep -v -E '(alpha|beta|rc)' | sort -V | tail -1)
+          if [ "$latest" != "$current" ]; then
+            sed -i "s/TOMCAT_VERSION=$current/TOMCAT_VERSION=$latest/" Dockerfile
+            git config user.name "github-actions"
+            git config user.email "github-actions@github.com"
+            git checkout -b update-tomcat-version
+            git commit -am "Update Tomcat version to $latest"
+            git push -u origin update-tomcat-version
+
+            gh pr create \
+              --title "Update Tomcat version to $latest" \
+              --body "Automatic update for Tomcat to version $latest." \
+              --head update-tomcat-version \
+              --base main
+          else
+            echo "Tomcat is already up-to-date"
+          fi
+
+  update-drawio:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v3
+
+      - name: Update Draw.io version
+        run: |
+          current=$(grep DRAWIO_VERSION Dockerfile | cut -d'=' -f2)
+          latest=$(curl -s https://api.github.com/repos/jgraph/drawio/releases/latest | grep '"tag_name":' | head -1 | grep -oP '\d+\.\d+\.\d+')
+          if [ "$latest" != "$current" ]; then
+            sed -i "s/DRAWIO_VERSION=$current/DRAWIO_VERSION=$latest/" Dockerfile
+            git config user.name "github-actions"
+            git config user.email "github-actions@github.com"
+            git checkout -b update-drawio-version
+            git commit -am "Update Draw.io version to $latest"
+            git push -u origin update-drawio-version
+
+            gh pr create \
+              --title "Update Draw.io version to $latest" \
+              --body "Automatic update for Draw.io to version $latest." \
+              --head update-drawio-version \
+              --base main
+          else
+            echo "Draw.io is already up-to-date"
