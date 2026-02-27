@@ -1,0 +1,66 @@
+name: Update Dockerfile Versions
+
+on:
+  workflow_dispatch:
+
+permissions:
+    pull-requests: write
+
+jobs:
+  update-tomcat:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v3
+        with:
+          github-token: "${{ secrets.GITHUB_TOKEN }}"
+
+      - name: Update Tomcat version
+        run: |
+          current=$(grep -oP '(?<=ARG TOMCAT_VERSION=)[^ ]+' Dockerfile)
+          latest=$(curl -s https://downloads.apache.org/tomcat/tomcat-10/ | grep -oP 'v\K\d+\.\d+\.\d+(?=/")' | grep -v -E '(alpha|beta|rc)' | sort -V | tail -1)
+          if [ "$latest" != "$current" ]; then
+            sed -i "s/TOMCAT_VERSION=$current/TOMCAT_VERSION=$latest/" Dockerfile
+            git config user.name "github-actions"
+            git config user.email "github-actions@github.com"
+            git checkout -b update-tomcat-version
+            git commit -am "Update Tomcat version to $latest"
+            
+            gh pr create \
+              --title "Update Tomcat version to $latest" \
+              --body "Automatic update for Tomcat to version $latest." \
+              --head update-tomcat-version \
+              --base 5.2.x 
+          else
+            echo "Tomcat is already up-to-date"
+          fi
+        env:
+          GITHUB_TOKEN: ${{secrets.GITHUB_TOKEN}}
+          
+  update-drawio:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v3
+        with:
+          github-token: "${{ secrets.GITHUB_TOKEN }}"
+
+      - name: Update Drawio version
+        run: |
+          current=$(grep -oP '(?<=ARG TOMCAT_VERSION=)[^ ]+' Dockerfile)
+          latest=$(curl -s https://api.github.com/repos/jgraph/drawio/releases/latest | grep '"tag_name":' | head -1 | grep -oP '\d+\.\d+\.\d+')
+          if [ "$latest" != "$current" ]; then
+            sed -i "s/DRAWIO_VERSION=$current/=$latest/" Dockerfile
+            git config user.name "github-actions"
+            git config user.email "github-actions@github.com"
+            git checkout -b update-drawio-version
+            git commit -am "Update Drawio version to $latest"
+            
+            gh pr create \
+              --title "Update Drawio version to $latest" \
+              --body "Automatic update for Drawio to version $latest." \
+              --head update-drawio-version \
+              --base 5.2.x 
+          else
+            echo "Drawio is already up-to-date"
+          fi
+        env:
+          GITHUB_TOKEN: ${{secrets.GITHUB_TOKEN}}
